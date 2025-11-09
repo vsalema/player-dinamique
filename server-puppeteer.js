@@ -70,3 +70,26 @@ app.listen(PORT,()=>{
   console.log('listening on',PORT);
   start().catch(err=>{ console.error('puppeteer start error',err); process.exit(1); });
 });
+// /events
+app.get('/events', (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    // autoriser l'origine du front (remplace * par ton domaine si tu veux restreindre)
+    'Access-Control-Allow-Origin': '*',
+  });
+  // ...
+});
+
+// JSON endpoints
+app.get('/set-target', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  // ...
+});
+
+app.get('/current', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.json({ /* ... */ });
+});
+
