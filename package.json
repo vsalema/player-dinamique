@@ -1,0 +1,12 @@
+{
+  "name": "m3u8-deploy-ready",
+  "version": "1.0.0",
+  "private": false,
+  "scripts": {
+    "start": "node server-puppeteer.js"
+  },
+  "dependencies": {
+    "express": "^4.21.1",
+    "puppeteer": "^23.7.4"
+  }
+}

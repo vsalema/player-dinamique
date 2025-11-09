@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+<body style="background:#0b1020;color:white;font-family:Arial;padding:20px;">
+<h2>M3U8 Auto Watcher (deployed)</h2>
+<video id="player" controls width="800" height="450"></video>
+<div style="margin-top:12px;">
+  <input id="u" style="width:420px;" placeholder="https://..." />
+  <button onclick="setTarget()">Changer de page</button>
+  <div>Backend origin: <span id="origin">same-origin</span></div>
+</div>
+<div style="margin-top:10px;">Source: <span id="src">—</span> | Page: <span id="tgt">—</span> | SSE: <span id="sse">…</span></div>
+<script>
+const player=document.getElementById('player');
+function setSource(m){ document.getElementById('src').textContent=m; player.src=m; player.play().catch(()=>{}); }
+async function setTarget(){ const url=document.getElementById('u').value.trim(); await fetch('/set-target?url='+encodeURIComponent(url)); document.getElementById('tgt').textContent=url; }
+const es=new EventSource('/events');
+es.addEventListener('open',()=>document.getElementById('sse').textContent='open');
+es.addEventListener('error',()=>document.getElementById('sse').textContent='err');
+es.addEventListener('init',e=>{ const d=JSON.parse(e.data); if(d.m3u8)setSource(d.m3u8); document.getElementById('tgt').textContent=d.target; });
+es.addEventListener('update',e=>{ const d=JSON.parse(e.data); if(d.m3u8)setSource(d.m3u8); document.getElementById('tgt').textContent=d.target; });
+</script>
+</body>
+</html>
