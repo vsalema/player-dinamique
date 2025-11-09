@@ -10,6 +10,76 @@
   <div>Backend origin: <span id="origin">same-origin</span></div>
 </div>
 <div style="margin-top:10px;">Source: <span id="src">—</span> | Page: <span id="tgt">—</span> | SSE: <span id="sse">…</span></div>
+<!-- Barre de config backend (facultative si même origine) -->
+<div class="row" style="margin-top:14px;">
+  <input id="backendOrigin" placeholder="Origine backend (ex: https://mon-backend.fly.dev)" style="width:420px;">
+  <button id="btnSaveOrigin">Utiliser ce backend</button>
+  <span id="backendState" style="margin-left:8px;color:#9fb0d4;"></span>
+</div>
+
+<script>
+  // Backend dynamique: par défaut, même origine que la page (utile si front et back cohabitent).
+  const LS_KEY = 'm3u8_backend_origin';
+  const defaultOrigin = window.location.origin;
+  const urlParams = new URLSearchParams(window.location.search);
+  let BACKEND = urlParams.get('backend') || localStorage.getItem(LS_KEY) || defaultOrigin;
+
+  // UI backend
+  const originInput = document.getElementById('backendOrigin');
+  const originState = document.getElementById('backendState');
+  if (originInput) originInput.value = BACKEND;
+  if (originState) originState.textContent = 'backend: ' + BACKEND;
+
+  document.getElementById('btnSaveOrigin')?.addEventListener('click', ()=>{
+    const val = (originInput.value || '').trim() || defaultOrigin;
+    BACKEND = val.replace(/\/$/,'');
+    localStorage.setItem(LS_KEY, BACKEND);
+    originState.textContent = 'backend: ' + BACKEND;
+    reconnectSSE();
+  });
+
+  // Helpers API
+  async function api(path) {
+    const r = await fetch(`${BACKEND.replace(/\/$/,'')}${path}`, { credentials: 'omit' });
+    const j = await r.json().catch(()=> ({}));
+    if (!r.ok) throw new Error(j.error || r.statusText);
+    return j;
+  }
+
+  // setTarget côté front (réutilise ton bouton existant)
+  async function setTarget(url) {
+    const j = await api('/set-target?url=' + encodeURIComponent(url));
+    document.getElementById('targetText').textContent = j.target;
+  }
+
+  // SSE dynamique
+  let es;
+  function reconnectSSE() {
+    if (es) es.close();
+    es = new EventSource(`${BACKEND.replace(/\/$/,'')}/events`, { withCredentials: false });
+    es.addEventListener('open', ()=> document.getElementById('sseState').textContent = 'connecté');
+    es.addEventListener('error', ()=> document.getElementById('sseState').textContent = 'déconnecté');
+    es.addEventListener('init', e => {
+      try {
+        const d = JSON.parse(e.data);
+        if (d?.m3u8) setSourceAndPlay ? setSourceAndPlay(d.m3u8) : setSource(d.m3u8);
+        if (d?.target) document.getElementById('targetText').textContent = d.target;
+      } catch {}
+    });
+    es.addEventListener('update', e => {
+      try {
+        const d = JSON.parse(e.data);
+        if (d?.m3u8) setSourceAndPlay ? setSourceAndPlay(d.m3u8) : setSource(d.m3u8);
+        if (d?.target) document.getElementById('targetText').textContent = d.target;
+      } catch {}
+    });
+  }
+
+  // Démarrage
+  reconnectSSE();
+</script>
+
+  
 <script>
 const player=document.getElementById('player');
 function setSource(m){ document.getElementById('src').textContent=m; player.src=m; player.play().catch(()=>{}); }
